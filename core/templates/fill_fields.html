@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <title>Preencher Modelo</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 0;
+      padding: 0;
+      background-color: #f4f4f4;
+    }
+
+    main {
+      display: flex;
+      height: 100vh;
+    }
+
+    .form-section {
+      width: 35%;
+      padding: 20px;
+      background-color: #fff;
+      border-right: 2px solid #ddd;
+      overflow-y: auto;
+    }
+
+    .doc-section {
+      width: 65%;
+      padding: 20px;
+      background-color: #fafafa;
+      overflow-y: auto;
+    }
+
+    h1 {
+      color: #004aad;
+      font-size: 1.5em;
+    }
+
+    label {
+      display: block;
+      margin-top: 15px;
+      font-weight: bold;
+    }
+
+    input {
+      width: 100%;
+      padding: 8px;
+      margin-top: 5px;
+      border-radius: 5px;
+      border: 1px solid #ccc;
+    }
+
+    button {
+      margin-top: 20px;
+      background-color: #28a745;
+      color: white;
+      border: none;
+      padding: 10px 20px;
+      border-radius: 5px;
+      cursor: pointer;
+      font-weight: bold;
+    }
+
+    button:hover {
+      background-color: #218838;
+    }
+
+    .doc-preview {
+      background: white;
+      border-radius: 8px;
+      padding: 15px;
+      box-shadow: 0 0 8px rgba(0,0,0,0.1);
+    }
+
+    mark.placeholder {
+      background: yellow;
+      font-weight: bold;
+      color: black;
+    }
+  </style>
+
+  <!-- Importa biblioteca docx-preview -->
+  <script src="https://unpkg.com/docx-preview@0.3.1/dist/docx-preview.min.js"></script>
+</head>
+<body>
+  <main>
+    <section class="form-section">
+    <h1>Preencher Modelo</h1>
+    <p><strong>Arquivo:</strong> {{ filename }}</p>
+
+        <form id="fillForm" action="/generate/" method="POST">
+            {% csrf_token %}
+            <input type="hidden" name="filename" value="{{ filename }}">
+
+            {% for field in placeholders %}
+            <label for="field_{{ forloop.counter }}">{{ field }}</label>
+            <input type="text" id="field_{{ forloop.counter }}" name="{{ field }}" placeholder="Digite o valor para {{ field }}">
+            {% endfor %}
+
+            <button type="submit">Gerar Documento Preenchido</button>
+        </form>
+
+    </section>
+
+    <section class="doc-section">
+      <h1>Visualização do Documento</h1>
+      <div id="preview" class="doc-preview">Carregando documento...</div>
+    </section>
+  </main>
+
+  <script>
+    const previewContainer = document.getElementById('preview');
+    const inputs = document.querySelectorAll('input[type="text"]');
+    const filename = "{{ filename }}";
+
+    // Função que carrega e exibe o DOCX no navegador
+    async function renderDocx() {
+      try {
+        const response = await fetch(`/media/${filename}`);
+        const blob = await response.blob();
+        previewContainer.innerHTML = ''; // Limpa antes de renderizar novamente
+        await docx.renderAsync(blob, previewContainer);
+      } catch (error) {
+        console.error("❌ Erro ao renderizar o DOCX:", error);
+        previewContainer.textContent = "Erro ao exibir documento.";
+      }
+    }
+
+    // Chama a função inicial ao abrir a página
+    renderDocx();
+
+    // Quando o usuário digita nos campos, marca o placeholder no preview
+    inputs.forEach(input => {
+      input.addEventListener('input', () => {
+        const allMarks = previewContainer.querySelectorAll('mark.placeholder');
+        allMarks.forEach(m => m.textContent === input.name && (m.textContent = input.value || m.dataset.placeholder));
+
+        highlightPlaceholders();
+      });
+    });
+
+    // Destaca os placeholders detectados no preview
+    function highlightPlaceholders() {
+      const walker = document.createTreeWalker(previewContainer, NodeFilter.SHOW_TEXT);
+      const toReplace = [];
+
+      while (walker.nextNode()) {
+        const node = walker.currentNode;
+        const match = node.textContent.match(/\{([^{}]+)\}/);
+        if (match) toReplace.push({ node, match });
+      }
+
+      toReplace.forEach(({ node, match }) => {
+        const span = document.createElement('mark');
+        span.classList.add('placeholder');
+        span.dataset.placeholder = match[1];
+        span.textContent = match[1];
+        node.parentNode.replaceChild(span, node);
+      });
+    }
+
+    // Dá um pequeno delay pra aplicar o destaque depois do render
+    setTimeout(highlightPlaceholders, 1000);
+  </script>
+</body>
+</html>

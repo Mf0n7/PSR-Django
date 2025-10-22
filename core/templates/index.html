@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <title>Gerador de Petições</title>
+</head>
+<body>
+    <h1>Upload de Documento DOCX</h1>
+    <form action="/upload/" method="post" enctype="multipart/form-data">
+        {% csrf_token %}
+        <input type="file" name="document" accept=".docx" required>
+        <button type="submit">Enviar</button>
+    </form>
+
+    {% if text %}
+    <h2>Conteúdo extraído:</h2>
+    <form action="/download/" method="post">
+        {% csrf_token %}
+        <textarea name="text" rows="20" cols="100">{{ text }}</textarea><br>
+        <button type="submit">Baixar .docx preenchido</button>
+    </form>
+    {% endif %}
+</body>
+</html>
