@@ -49,12 +49,15 @@ def generate_docx(request):
         def replace_placeholders_in_paragraph(paragraph):
             # Junta todo o texto do parágrafo
             full_text = ''.join(run.text for run in paragraph.runs)
-            # Substitui todos os placeholders
+            
             for key, value in request.POST.items():
                 if key == 'filename':
                     continue
-                full_text = full_text.replace(f'{{{key}}}', value)
-            # Atualiza o primeiro run com todo o texto e limpa os outros
+                # Substitui com regex, ignorando espaços dentro das chaves
+                pattern = re.compile(r'\{\s*' + re.escape(key) + r'\s*\}')
+                full_text = pattern.sub(value, full_text)
+            
+            # Atualiza o primeiro run e limpa os outros
             if paragraph.runs:
                 paragraph.runs[0].text = full_text
                 for run in paragraph.runs[1:]:
