@@ -3,3 +3,5 @@ django
 Document
 pathlib
 gunicorn
+docx
+python-docx
