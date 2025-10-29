@@ -5,3 +5,4 @@ pathlib
 gunicorn
 docx
 python-docx
+docxtpl
